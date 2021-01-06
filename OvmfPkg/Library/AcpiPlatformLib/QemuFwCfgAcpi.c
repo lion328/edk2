@@ -21,6 +21,8 @@
 #include <Library/QemuFwCfgS3Lib.h>           // QemuFwCfgS3Enabled()
 #include <Library/UefiBootServicesTableLib.h> // gBS
 #include <Library/TpmMeasurementLib.h>
+#include "vrom.h"
+#include "vrom_table.h"
 
 //
 // The user structure for the ordered collection that will track the fw_cfg
@@ -1277,6 +1279,79 @@ InstallQemuFwCfgTables (
       }
     }
   }
+
+   // modification: add additional SSDT
+   UINT32 VromSize = 0x40004;
+   UINT8* FwData = AllocateRuntimePool(VromSize); // 256*1024 = 256 KB = size of VROM image
+   ZeroMem (FwData, VromSize);
+
+   // copy VROM to FwData
+   *(UINT32*) FwData = VROM_BIN_LEN;
+   CopyMem (FwData + 4, VROM_BIN, VROM_BIN_LEN);
+
+   // header of SSDT table: DefinitionBlock ("Ssdt.aml", "SSDT", 1, "REDHAT", "OVMF    ", 1)
+   unsigned char Ssdt_header[] = {
+   0x53, 0x53, 0x44, 0x54, 0x24, 0x00, 0x00, 0x00, 0x01, 0x86, 0x52, 0x45,
+   0x44, 0x48, 0x41, 0x54, 0x4f, 0x56, 0x4d, 0x46, 0x20, 0x20, 0x20, 0x20,
+   0x01, 0x00, 0x00, 0x00, 0x49, 0x4e, 0x54, 0x4c, 0x31, 0x08, 0x16, 0x20
+   };
+
+   // byte 4-7: length header + table in little endian (so equal to SsdtSize)
+   // byte 8: version complicance number: nothing needs to change
+   // byte 9: set such that when all bytes are added modulo 256 the sum equals 0
+   // calculate checksum: already implemented as CalculateCheckSum8(offset, length)
+
+   unsigned int Ssdt_header_len = 36;
+
+   UINTN                SsdtSize;
+   UINT8                *Ssdt;
+
+   SsdtSize = Ssdt_header_len + 17 + vrom_table_len;
+   Ssdt = AllocatePool (SsdtSize);
+
+   UINT8 *SsdtPtr = Ssdt;
+
+   // copy header to Ssdt table
+   CopyMem (SsdtPtr, Ssdt_header, Ssdt_header_len);
+   SsdtPtr += Ssdt_header_len;
+
+   // build "OperationRegion(FWDT, SystemMemory, 0x12345678, 0x87654321)"
+   //
+   *(SsdtPtr++) = 0x5B; // ExtOpPrefix
+   *(SsdtPtr++) = 0x80; // OpRegionOp
+   *(SsdtPtr++) = 'V';
+   *(SsdtPtr++) = 'B';
+   *(SsdtPtr++) = 'O';
+   *(SsdtPtr++) = 'R';
+   *(SsdtPtr++) = 0x00; // SystemMemory
+   *(SsdtPtr++) = 0x0C; // DWordPrefix
+
+   //
+   // no virtual addressing yet, take the four least significant bytes
+   //
+   CopyMem(SsdtPtr, &FwData, 4);
+   SsdtPtr += 4;
+
+   *(SsdtPtr++) = 0x0C; // DWordPrefix
+
+   *(UINT32*) SsdtPtr = VromSize;
+   SsdtPtr += 4;
+
+   CopyMem (SsdtPtr, vrom_table, vrom_table_len);
+
+   // set the correct size in the header
+   UINT32* size_ptr = (UINT32*) &Ssdt[4];
+   *size_ptr = SsdtSize;
+
+   // set byte 9 of header so the checksum equals 0
+   Ssdt[9] = 0;
+   UINT32 checksum = CalculateCheckSum8(Ssdt, SsdtSize);
+   Ssdt[9] = (256 - checksum) % 256;
+
+   Status = AcpiProtocol->InstallAcpiTable (AcpiProtocol,
+                            (VOID *) Ssdt, SsdtSize,
+                            &InstalledKey[Installed]);
+   ++Installed;
 
   //
   // Install a protocol to notify that the ACPI table provided by Qemu is
