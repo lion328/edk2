@@ -49,7 +49,7 @@ SetWorkspace()
     return 0
   fi
 
-  if [ ! -f ${SCRIPTNAME} ] && [ -z "$PACKAGES_PATH" ]
+  if [ ! -f "${SCRIPTNAME}" ] && [ -z "$PACKAGES_PATH" ]
   then
     echo Source this script from the base of your tree.  For example:
     echo "  cd /Path/To/Edk2/Clone"
@@ -79,18 +79,18 @@ SetupEnv()
 {
   if [ -n "$EDK_TOOLS_PATH" ]
   then
-    . $EDK_TOOLS_PATH/BuildEnv
+    . "$EDK_TOOLS_PATH/BuildEnv"
   elif [ -f "$WORKSPACE/BaseTools/BuildEnv" ]
   then
-    . $WORKSPACE/BaseTools/BuildEnv
+    . "$WORKSPACE/BaseTools/BuildEnv"
   elif [ -n "$PACKAGES_PATH" ]
   then
     for DIR in $(echo $PACKAGES_PATH | tr ':' ' ')
     do
       if [ -f "$DIR/BaseTools/BuildEnv" ]
       then
-        export EDK_TOOLS_PATH=$DIR/BaseTools
-        . $DIR/BaseTools/BuildEnv
+        export EDK_TOOLS_PATH="$DIR/BaseTools"
+        . "$DIR/BaseTools/BuildEnv"
         break
       fi
     done
