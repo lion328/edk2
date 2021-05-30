@@ -265,6 +265,10 @@ INF  OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
 INF  OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
 INF  OvmfPkg/VirtioRngDxe/VirtioRng.inf
 INF  OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+!if $(INTEL_GOP_ENABLE) == TRUE
+INF  OvmfPkg/IntelGop/IntelGopDriver.inf
+INF  RuleOverride=CSM OvmfPkg/Vbt/Vbt.inf
+!endif
 !if $(PVSCSI_ENABLE) == TRUE
 INF  OvmfPkg/PvScsiDxe/PvScsiDxe.inf
 !endif

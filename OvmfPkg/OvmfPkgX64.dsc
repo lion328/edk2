@@ -58,6 +58,7 @@
   DEFINE PVSCSI_ENABLE           = FALSE
   DEFINE MPT_SCSI_ENABLE         = FALSE
   DEFINE LSI_SCSI_ENABLE         = FALSE
+  DEFINE INTEL_GOP_ENABLE        = TRUE
 
   #
   # Flash size selection. Setting FD_SIZE_IN_KB on the command line directly to
@@ -892,6 +893,10 @@
   OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
   OvmfPkg/VirtioRngDxe/VirtioRng.inf
   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+!if $(INTEL_GOP_ENABLE) == TRUE
+  OvmfPkg/IntelGop/IntelGopDriver.inf
+  OvmfPkg/Vbt/Vbt.inf
+!endif
 !if $(PVSCSI_ENABLE) == TRUE
   OvmfPkg/PvScsiDxe/PvScsiDxe.inf
 !endif
