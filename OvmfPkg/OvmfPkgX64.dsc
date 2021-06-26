@@ -939,7 +939,6 @@
 !endif
   OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
   OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
-  OvmfPkg/IgdAssignmentDxe/IgdAssignment.inf
 
   #
   # ISA Support
